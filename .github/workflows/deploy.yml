@@ -7,22 +7,29 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+
             - name: Set up Maven Central Repository
               uses: actions/setup-java@v4
               with:
-                  java-version: '8'
-                  distribution: 'temurin'
-                  server-id: sonatype-nexus-staging
-                  server-username: MAVEN_USERNAME
-                  server-password: MAVEN_PASSWORD
-                  gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-                  gpg-passphrase: GPG_PASSPHRASE
-              env:
-                  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                java-version: '8'
+                distribution: 'temurin'
+                server-id: sonatype-nexus-staging
+                server-username: MAVEN_USERNAME
+                server-password: MAVEN_PASSWORD
+
+            - name: Import GPG key
+              id: import_gpg
+              uses: crazy-max/ghaction-import-gpg@v6
+              with:
+                gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+                passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+            - name: Verify GPG secret key is available
+              run: gpg --list-secret-keys --keyid-format LONG
 
             - name: Publish package
-              run: mvn --batch-mode deploy -P deploy
+              run: mvn --batch-mode deploy -P deploy -Dgpg.keyname=${{ steps.import_gpg.outputs.fingerprint }}
               env:
-                  MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                  MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-                  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+                MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+                MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
