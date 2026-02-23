@@ -30,6 +30,6 @@ jobs:
             - name: Publish package
               run: mvn --batch-mode deploy -P deploy -Dgpg.keyname=${{ steps.import_gpg.outputs.fingerprint }}
               env:
-                MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+                MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+                MAVEN_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
                 MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
