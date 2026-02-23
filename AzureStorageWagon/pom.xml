@@ -9,6 +9,7 @@
 
     <artifactId>azure-storage-wagon</artifactId>
     <packaging>maven-plugin</packaging>
+    <name>Cloud Storage for Azure Blob Storage</name>
 
     <description>Azure blob storage wagon</description>
 

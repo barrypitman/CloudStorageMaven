@@ -9,6 +9,7 @@
 
     <artifactId>google-storage-wagon</artifactId>
     <packaging>maven-plugin</packaging>
+    <name>Cloud Storage for Google</name>
     <description>Google Cloud storage wagon</description>
 
     <properties>

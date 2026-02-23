@@ -10,6 +10,7 @@
     <artifactId>s3-storage-wagon</artifactId>
     <packaging>maven-plugin</packaging>
     <description>S3 storage wagon</description>
+    <name>Cloud Storage for Amazon S3</name>
 
     <properties>
         <aws.version>1.11.743</aws.version>
