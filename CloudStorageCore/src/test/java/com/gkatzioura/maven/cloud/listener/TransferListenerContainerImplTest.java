@@ -1,6 +1,8 @@
 package com.gkatzioura.maven.cloud.listener;
 
 import org.apache.maven.wagon.Wagon;
+
+import java.lang.reflect.Proxy;
 import org.apache.maven.wagon.events.TransferEvent;
 import org.apache.maven.wagon.events.TransferListener;
 import org.apache.maven.wagon.resource.Resource;
@@ -15,7 +17,7 @@ public class TransferListenerContainerImplTest {
 
     @Test
     public void fireTransferStartedSetsUnknownLengthForGetWhenLengthIsNotKnown() throws IOException {
-        TransferListenerContainerImpl container = new TransferListenerContainerImpl((Wagon) null);
+        TransferListenerContainerImpl container = new TransferListenerContainerImpl(createWagonStub());
         Resource resource = new Resource("artifact.pom");
         File localFile = File.createTempFile("transfer", ".tmp");
         localFile.deleteOnExit();
@@ -30,7 +32,7 @@ public class TransferListenerContainerImplTest {
 
     @Test
     public void fireTransferStartedUsesLocalFileLengthForPut() throws IOException {
-        TransferListenerContainerImpl container = new TransferListenerContainerImpl((Wagon) null);
+        TransferListenerContainerImpl container = new TransferListenerContainerImpl(createWagonStub());
         Resource resource = new Resource("artifact.pom");
         File localFile = File.createTempFile("transfer", ".tmp");
         localFile.deleteOnExit();
@@ -41,6 +43,14 @@ public class TransferListenerContainerImplTest {
         container.fireTransferStarted(resource, TransferEvent.REQUEST_PUT, localFile);
 
         assertEquals(localFile.length(), listener.lastEvent.getResource().getContentLength());
+    }
+
+    private Wagon createWagonStub() {
+        return (Wagon) Proxy.newProxyInstance(
+                Wagon.class.getClassLoader(),
+                new Class<?>[]{Wagon.class},
+                (proxy, method, args) -> null
+        );
     }
 
     private static class TransferStartedCaptureListener implements TransferListener {
