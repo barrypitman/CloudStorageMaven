@@ -62,7 +62,11 @@ public class TransferListenerContainerImpl implements TransferListenerContainer 
 
     @Override
     public void fireTransferStarted(Resource resource, int requestType, File localFile) {
-        resource.setContentLength(localFile.length());
+        if (requestType == TransferEvent.REQUEST_PUT) {
+            resource.setContentLength(localFile.length());
+        } else if (resource.getContentLength() <= 0) {
+            resource.setContentLength(-1L);
+        }
         resource.setLastModified(localFile.lastModified());
         TransferEvent transferEvent = new TransferEvent(this.wagon,resource,TransferEvent.TRANSFER_STARTED,requestType);
         transferEvent.setLocalFile(localFile);
