@@ -50,15 +50,31 @@ public class AzureClientFactory {
 
         String username = authenticationInfo.getUserName();
         String password = authenticationInfo.getPassword();
+        String passphrase = authenticationInfo.getPassphrase();
+        String endpoint = authenticationInfo.getPrivateKey();
 
-        if (username == null || username.isEmpty()) {
+        if ((username == null || username.isEmpty())
+                && (password == null || password.isEmpty())
+                && (passphrase == null || passphrase.isEmpty())
+                && endpoint != null && !endpoint.isEmpty()) {
+            // Azure AD default credential chain (CLI login, managed identity, environment, workload identity, etc)
+            AuthenticationKey key = AuthenticationKey.forDefaultCredential(endpoint);
+            return CLIENT_CACHE.computeIfAbsent(key, ignored -> {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                return new BlobServiceClientBuilder()
+                        .endpoint(endpoint)
+                        .credential(credential)
+                        .buildClient();
+            });
+
+        } else if (username == null || username.isEmpty()) {
             // if no username is provided, then we expect that the password is a shared access signature (SAS) URL
             AuthenticationKey key = AuthenticationKey.forSas(password);
             return CLIENT_CACHE.computeIfAbsent(key, ignored -> new BlobServiceClientBuilder()
                     .endpoint(password)
                     .buildClient());
 
-        } else if (authenticationInfo.getPassphrase() != null && !authenticationInfo.getPassphrase().isEmpty()) {
+        } else if (passphrase != null && !passphrase.isEmpty()) {
             // Azure AD service principal credentials provided directly in settings.xml
             AuthenticationKey key = AuthenticationKey.forAad(username, password, authenticationInfo.getPassphrase(), authenticationInfo.getPrivateKey());
             return CLIENT_CACHE.computeIfAbsent(key, ignored -> {
