@@ -18,6 +18,8 @@ package com.gkatzioura.maven.cloud.abs;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import org.apache.maven.wagon.authentication.AuthenticationException;
@@ -48,18 +50,32 @@ public class AzureClientFactory {
 
         String username = authenticationInfo.getUserName();
         String password = authenticationInfo.getPassword();
+        String passphrase = authenticationInfo.getPassphrase();
+        String endpoint = authenticationInfo.getPrivateKey();
 
-        if (username == null || username.isEmpty()) {
+        if ((username == null || username.isEmpty())
+                && (password == null || password.isEmpty())
+                && (passphrase == null || passphrase.isEmpty())
+                && endpoint != null && !endpoint.isEmpty()) {
+            // Azure AD default credential chain (CLI login, managed identity, environment, workload identity, etc)
+            AuthenticationKey key = AuthenticationKey.forDefaultCredential(endpoint);
+            return CLIENT_CACHE.computeIfAbsent(key, ignored -> {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                return new BlobServiceClientBuilder()
+                        .endpoint(endpoint)
+                        .credential(credential)
+                        .buildClient();
+            });
+
+        } else if (username == null || username.isEmpty()) {
             // if no username is provided, then we expect that the password is a shared access signature (SAS) URL
             AuthenticationKey key = AuthenticationKey.forSas(password);
             return CLIENT_CACHE.computeIfAbsent(key, ignored -> new BlobServiceClientBuilder()
                     .endpoint(password)
                     .buildClient());
 
-        } else if (authenticationInfo.getPassphrase() != null && !authenticationInfo.getPassphrase().isEmpty()) {
-            // if no password is provided, then we expect that the username is the path to a properties file, which contains
-            // the following properties: client_id, client_secret, tenant_id and storage_account_url properties,
-            // for use when authenticating via Azure AD
+        } else if (passphrase != null && !passphrase.isEmpty()) {
+            // Azure AD service principal credentials provided directly in settings.xml
             AuthenticationKey key = AuthenticationKey.forAad(username, password, authenticationInfo.getPassphrase(), authenticationInfo.getPrivateKey());
             return CLIENT_CACHE.computeIfAbsent(key, ignored -> {
                 ClientSecretCredential credential = new ClientSecretCredentialBuilder()
@@ -108,6 +124,10 @@ public class AzureClientFactory {
 
         static AuthenticationKey forConnectionString(String connectionString) {
             return new AuthenticationKey("connection", null, connectionString, null, null);
+        }
+
+        static AuthenticationKey forDefaultCredential(String endpoint) {
+            return new AuthenticationKey("default", null, null, null, endpoint);
         }
 
         @Override
