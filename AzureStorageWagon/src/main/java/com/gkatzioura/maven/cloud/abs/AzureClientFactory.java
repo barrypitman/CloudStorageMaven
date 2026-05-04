@@ -89,6 +89,17 @@ public class AzureClientFactory {
                         .buildClient();
             });
 
+        } else if (authenticationInfo.getPrivateKey() != null && !authenticationInfo.getPrivateKey().isEmpty()) {
+            // Azure AD default credential chain (CLI login, managed identity, environment, workload identity, etc)
+            AuthenticationKey key = AuthenticationKey.forDefaultCredential(authenticationInfo.getPrivateKey());
+            return CLIENT_CACHE.computeIfAbsent(key, ignored -> {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                return new BlobServiceClientBuilder()
+                        .endpoint(authenticationInfo.getPrivateKey())
+                        .credential(credential)
+                        .buildClient();
+            });
+
         } else {
             String connectionString = String.format(CONNECTION_STRING_TEMPLATE, username, password);
             AuthenticationKey key = AuthenticationKey.forConnectionString(connectionString);
